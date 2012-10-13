@@ -1,0 +1,72 @@
+if CUST_PANTECH_H
+
+#
+# PANTECH Cust feature section
+#
+
+if MACH_MSM8X55_EF18K
+config DEFINE_LIST_EF18K
+        bool
+        default y
+	select PANTECH_CAMERA
+        select PANTECH_SDCARD
+        select PANTECH_SKY_FACTORY_COMMAND
+	select PANTECH_USB
+	select SKY_BT
+	select SKY_SND_EXTAMP
+	select SKY_SND_CTRL
+endif
+
+if MACH_MSM8X55_EF30S
+config DEFINE_LIST_EF30S
+	bool
+	default y
+	select PANTECH_CAMERA
+	select PANTECH_SDCARD
+	select PANTECH_SKY_FACTORY_COMMAND
+	select PANTECH_USB
+	select SKY_BT
+	select SKY_SND_EXTAMP
+	select SKY_SND_CTRL
+endif
+
+
+config PANTECH_CAMERA
+	bool
+
+config PANTECH_SDCARD
+	bool
+	
+
+# config PANTECH_EF36S_AUDIO_MAX97001
+# 	bool
+# config PANTECH_EF36S_AUDIO_MARIMBA_SETTING
+# 	bool
+# config PANTECH_EF36S_AUDIO_SUBCHIP_CAL_TOOL
+# 	bool
+# config PANTECH_EF36S_ASR_PATH
+# 	bool
+
+
+config PANTECH_ERR_CRASH_LOGGING
+	bool
+
+
+config SKY_BT
+	bool
+config BRCM_BT_HID
+	bool	
+
+config PANTECH_SKY_FACTORY_COMMAND
+	bool	
+
+config PANTECH_USB
+	bool
+
+config SKY_SND_EXTAMP
+        bool 
+        
+config SKY_SND_CTRL
+        bool 
+
+endif
