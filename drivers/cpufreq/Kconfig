@@ -202,5 +202,5 @@ config CPU_FREQ_GOV_SMARTASS2
 	depends on CPU_FREQ
 	help
 	  smartass2' - a "slightly more agressive smart" optimized governor!
-	If in doubt, say Y.
+	  If in doubt, say Y.
 endif	# CPU_FREQ
