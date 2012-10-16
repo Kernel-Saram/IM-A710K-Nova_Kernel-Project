@@ -16,9 +16,9 @@
 *
 * DEVIL SANCTUARY - Low Voltage OverClock 
 * 
-* Update : 2012-10-15
+* Update : 2012-10-16
 *
-* 극저전압이 아닌 극저전압 + 저전압 최종 안정 버전이다.
+* Modify : Fixup Function Remove, Source Optimazing
 *
 * =========================================================================================
 *
@@ -108,16 +108,7 @@ static struct cpufreq_frequency_table freq_table[] = {
 #define SRC_LPXO (-2)
 #define SRC_AXI  (-1)
 
-/*
-*
-* 전압 설정은 극저전압 설정으로 사용에는 프리징이 없으나 고사양게임에서 프리징 발생을 확인하여, 기존에 저전압설정을 기본으로 수정되었다.
-*
-* 테스트 해보니 전 클럭에서 고사양게임시 발열은 높아졌으나 프리징은 발생하지 않았다.
-*
-* 전압 최종 테스트일 : 2012-10-15 밤
-*
-*/
-
+/* DEVIL new generation PLL FREQ TABLE : MAX 1.7 */
 static struct clkctl_acpu_speed acpu_freq_tbl[] = {
 	{ 24576,  SRC_LPXO, 0, 0,  30720000,  900, VDD_RAW(900) },
 	{ 61440,  PLL_3,    5, 11, 61440000,  900, VDD_RAW(900) },
@@ -136,10 +127,10 @@ static struct clkctl_acpu_speed acpu_freq_tbl[] = {
 	{ 1113000, PLL_2,   3, 0,  UINT_MAX, 1150, VDD_RAW(1150) },
 	{ 1209600, PLL_2,   3, 0,  UINT_MAX, 1150, VDD_RAW(1150) },
 	{ 1305600, PLL_2,   3, 0,  UINT_MAX, 1200, VDD_RAW(1200) },	
-	{ 1401600, PLL_2,   3, 0,  UINT_MAX, 1200, VDD_RAW(1200) }, /* 1.4Ghz Modify 1250->1200 			(Stable : Down Voltage) */	
-	{ 1516800, PLL_2,   3, 0,  UINT_MAX, 1250, VDD_RAW(1250) }, /* 1.5Ghz Modify 1300->1250->1225->1250	(Stable : Down Voltage) */
-	{ 1612800, PLL_2,   3, 0,  UINT_MAX, 1300, VDD_RAW(1300) }, /* 1.6Ghz Modify 1350->1300->1275->1300	(Stable : Down Voltage) */	
-	{ 1708800, PLL_2,   3, 0,  UINT_MAX, 1400, VDD_RAW(1400) }, /* 1.7Ghz Modify 1400->1350->1400 		(Stable : Normal Voltage) */
+	{ 1401600, PLL_2,   3, 0,  UINT_MAX, 1200, VDD_RAW(1200) },	
+	{ 1516800, PLL_2,   3, 0,  UINT_MAX, 1250, VDD_RAW(1250) },
+	{ 1612800, PLL_2,   3, 0,  UINT_MAX, 1300, VDD_RAW(1300) },	
+	{ 1708800, PLL_2,   3, 0,  UINT_MAX, 1400, VDD_RAW(1400) },
 	{ 0 }
 };
 
