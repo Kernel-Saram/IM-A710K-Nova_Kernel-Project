@@ -1,7 +1,7 @@
 /*
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2007-2011, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2007-2010, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -11,6 +11,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
+ *
+ * DEVIL V3 20120911 : modify PLL2 vdd_mv  for 414 line after
  *
  */
 
@@ -36,13 +38,14 @@
 #include "acpuclock.h"
 #include "spm.h"
 
-#define SCSS_CLK_CTL_ADDR	(MSM_ACC_BASE + 0x04)
-#define SCSS_CLK_SEL_ADDR	(MSM_ACC_BASE + 0x08)
+#define SCSS_CLK_CTL_ADDR (MSM_ACC_BASE + 0x04)
+#define SCSS_CLK_SEL_ADDR (MSM_ACC_BASE + 0x08)
 
-#define PLL2_L_VAL_ADDR		(MSM_CLK_CTL_BASE + 0x33C)
-#define PLL2_M_VAL_ADDR		(MSM_CLK_CTL_BASE + 0x340)
-#define PLL2_N_VAL_ADDR		(MSM_CLK_CTL_BASE + 0x344)
-#define PLL2_CONFIG_ADDR	(MSM_CLK_CTL_BASE + 0x34C)
+#define PLL2_L_VAL_ADDR	 (MSM_CLK_CTL_BASE + 0x33C)
+#define PLL2_806_MHZ		42
+#define PLL2_1024_MHZ		53
+#define PLL2_1200_MHZ		125
+#define PLL2_1400_MHZ		73
 
 #define dprintk(msg...) \
 	cpufreq_debug_printk(CPUFREQ_DEBUG_DRIVER, "cpufreq-msm", msg)
@@ -66,15 +69,7 @@ struct clock_state {
 	struct clk			*ebi1_clk;
 };
 
-struct pll {
-	unsigned int l;
-	unsigned int m;
-	unsigned int n;
-	unsigned int pre_div;
-};
-
 struct clkctl_acpu_speed {
-	unsigned int	use_for_scaling;
 	unsigned int	acpu_clk_khz;
 	int		src;
 	unsigned int	acpu_src_sel;
@@ -82,20 +77,27 @@ struct clkctl_acpu_speed {
 	unsigned int	axi_clk_hz;
 	unsigned int	vdd_mv;
 	unsigned int	vdd_raw;
-	struct pll	*pll_rate;
 	unsigned long	lpj; /* loops_per_jiffy */
 };
 
 static struct clock_state drv_state = { 0 };
 
-/* Switch to this when reprogramming PLL2 */
-static struct clkctl_acpu_speed *backup_s;
-
-static struct pll pll2_tbl[] = {
-	{  42, 0, 1, 0 }, /*  806 MHz */
-	{  53, 1, 3, 0 }, /* 1024 MHz */
-	{ 125, 0, 1, 1 }, /* 1200 MHz */
-	{  73, 0, 1, 0 }, /* 1401 MHz */
+static struct cpufreq_frequency_table freq_table[] = {
+	{ 0, 122880 },
+	{ 1, 245760 },
+	{ 2, 368640 },
+	{ 3, 576000 },
+	{ 4, 768000 },
+	{ 5, 806400 },
+	{ 6, 1024000 },
+	{ 7, 1113000 },
+	{ 8, 1209600 },
+	{ 9, 1305600 },
+	{ 10, 1401600 },
+	{ 11, 1516800 },
+	{ 12, 1612800 },
+	{ 13, 1708800 },
+	{ 14, CPUFREQ_TABLE_END },
 };
 
 /* Use negative numbers for sources that can't be enabled/disabled */
@@ -108,22 +110,24 @@ static struct pll pll2_tbl[] = {
  * know all the h/w requirements.
  */
 static struct clkctl_acpu_speed acpu_freq_tbl[] = {
-	{ 0, 24576,  SRC_LPXO, 0, 0,  30720000,  900, VDD_RAW(900) },
-	{ 0, 61440,  PLL_3,    5, 11, 61440000,  900, VDD_RAW(900) },
-	{ 1, 122880, PLL_3,    5, 5,  61440000,  900, VDD_RAW(900) },
-	{ 0, 184320, PLL_3,    5, 4,  61440000,  900, VDD_RAW(900) },
-	{ 0, MAX_AXI_KHZ, SRC_AXI, 1, 0, 61440000, 900, VDD_RAW(900) },
-	{ 1, 245760, PLL_3,    5, 2,  61440000,  900, VDD_RAW(900) },
-	{ 1, 368640, PLL_3,    5, 1,  122800000, 900, VDD_RAW(900) },
-	/* AXI has MSMC1 implications. See above. */
-	{ 1, 768000, PLL_1,    2, 0,  153600000, 1050, VDD_RAW(1050) },
-	/*
-	 * AXI has MSMC1 implications. See above.
-	 */
-	{ 1, 806400,  PLL_2, 3, 0, UINT_MAX, 1100, VDD_RAW(1100), &pll2_tbl[0]},
-	{ 1, 1024000, PLL_2, 3, 0, UINT_MAX, 1200, VDD_RAW(1200), &pll2_tbl[1]},
-	{ 1, 1200000, PLL_2, 3, 0, UINT_MAX, 1200, VDD_RAW(1200), &pll2_tbl[2]},
-	{ 1, 1401600, PLL_2, 3, 0, UINT_MAX, 1250, VDD_RAW(1250), &pll2_tbl[3]},
+	{ 24576,  SRC_LPXO, 0, 0,  30720000,  700, VDD_RAW(700) },
+	{ 61440,  PLL_3,    5, 11, 61440000,  750, VDD_RAW(750) },
+	{ 122880, PLL_3,    5, 5,  61440000,  800, VDD_RAW(800) },
+	{ 184320, PLL_3,    5, 4,  61440000,  850, VDD_RAW(850) },
+	{ MAX_AXI_KHZ, SRC_AXI, 1, 0, 61440000, 850, VDD_RAW(850) },
+	{ 245760, PLL_3,    5, 2,  61440000,  850, VDD_RAW(850) },
+	{ 368640, PLL_3,    5, 1,  122800000, 900, VDD_RAW(900) },
+	{ 576000, PLL_1,    2, 0,  153600000, 900, VDD_RAW(900) },
+	{ 768000, PLL_1,    2, 0,  153600000, 1050, VDD_RAW(1050) },
+	{ 806400, PLL_2,    3, 0,  UINT_MAX, 1100, VDD_RAW(1100) },
+	{ 1024000, PLL_2,   3, 0,  UINT_MAX, 1150, VDD_RAW(1150) },
+	{ 1113000, PLL_2,   3, 0,  UINT_MAX, 1150, VDD_RAW(1150) },
+	{ 1209600, PLL_2,   3, 0,  UINT_MAX, 1150, VDD_RAW(1150) },
+	{ 1305600, PLL_2,   3, 0,  UINT_MAX, 1200, VDD_RAW(1200) },
+	{ 1401600, PLL_2,   3, 0,  UINT_MAX, 1250, VDD_RAW(1250) },
+	{ 1516800, PLL_2,   3, 0,  UINT_MAX, 1300, VDD_RAW(1300) },
+	{ 1612800, PLL_2,   3, 0,  UINT_MAX, 1350, VDD_RAW(1350) },
+	{ 1708800, PLL_2,   3, 0,  UINT_MAX, 1400, VDD_RAW(1400) },
 	{ 0 }
 };
 
@@ -154,26 +158,6 @@ static int acpuclk_set_acpu_vdd(struct clkctl_acpu_speed *s)
 	return 0;
 }
 
-/* Assumes PLL2 is off and the acpuclock isn't sourced from PLL2 */
-static void acpuclk_config_pll2(struct pll *pll)
-{
-	uint32_t config = readl(PLL2_CONFIG_ADDR);
-
-	/* Make sure write to disable PLL_2 has completed
-	 * before reconfiguring that PLL. */
-	mb();
-	writel(pll->l, PLL2_L_VAL_ADDR);
-	writel(pll->m, PLL2_M_VAL_ADDR);
-	writel(pll->n, PLL2_N_VAL_ADDR);
-	if (pll->pre_div)
-		config |= BIT(15);
-	else
-		config &= ~BIT(15);
-	writel(config, PLL2_CONFIG_ADDR);
-	/* Make sure PLL is programmed before returning. */
-	mb();
-}
-
 /* Set clock source and divider given a clock speed */
 static void acpuclk_set_src(const struct clkctl_acpu_speed *s)
 {
@@ -191,14 +175,16 @@ static void acpuclk_set_src(const struct clkctl_acpu_speed *s)
 	reg_clkctl |= s->acpu_src_div << (0 + 8 * src_sel);
 	writel(reg_clkctl, SCSS_CLK_CTL_ADDR);
 
+	/* Program PLL2 L val for overclocked speeds. */
+	if(s->src == PLL_2) {
+		writel(s->acpu_clk_khz/19200, PLL2_L_VAL_ADDR);
+	}
+
 	/* Toggle clock source. */
 	reg_clksel ^= 1;
 
 	/* Program clock source selection. */
 	writel(reg_clksel, SCSS_CLK_SEL_ADDR);
-
-	/* Make sure switch to new source is complete. */
-	dsb();
 }
 
 int acpuclk_set_rate(int cpu, unsigned long rate, enum setrate_reason reason)
@@ -250,31 +236,16 @@ int acpuclk_set_rate(int cpu, unsigned long rate, enum setrate_reason reason)
 		}
 	}
 
-	/* Move off of PLL2 if we're reprogramming it */
-	if (tgt_s->src == PLL_2 && strt_s->src == PLL_2) {
-		local_src_enable(backup_s->src);
-		acpuclk_set_src(backup_s);
-		local_src_disable(PLL_2);
-	}
-
-	/* Reconfigure PLL2 if we're moving to it */
-	if (tgt_s->src == PLL_2)
-		acpuclk_config_pll2(tgt_s->pll_rate);
-
 	/* Make sure target PLL is on. */
 	if (strt_s->src != tgt_s->src && tgt_s->src >= 0) {
 		dprintk("Enabling PLL %d\n", tgt_s->src);
 		local_src_enable(tgt_s->src);
-	} else if (tgt_s->src == PLL_2 && strt_s->src == PLL_2)
-		local_src_enable(PLL_2);
+	}
 
 	/* Perform the frequency switch */
 	acpuclk_set_src(tgt_s);
 	drv_state.current_speed = tgt_s;
 	loops_per_jiffy = tgt_s->lpj;
-
-	if (tgt_s->src == PLL_2 && strt_s->src == PLL_2)
-		local_src_disable(backup_s->src);
 
 	/* Nothing else to do for SWFI. */
 	if (reason == SETRATE_SWFI)
@@ -346,7 +317,6 @@ static void __init acpuclk_init(void)
 	uint32_t div, sel, src_num;
 	uint32_t reg_clksel, reg_clkctl;
 	int res;
-	u8 pll2_l = readl(PLL2_L_VAL_ADDR) & 0xFF;
 
 	drv_state.ebi1_clk = clk_get(NULL, "ebi1_clk");
 	BUG_ON(IS_ERR(drv_state.ebi1_clk));
@@ -393,12 +363,6 @@ static void __init acpuclk_init(void)
 		return;
 	}
 
-	/* Look at PLL2's L val to determine what speed PLL2 is running at */
-	if (s->src == PLL_2)
-		for ( ; s->acpu_clk_khz; s++)
-			if (s->pll_rate && s->pll_rate->l == pll2_l)
-				break;
-
 	/* Set initial ACPU VDD. */
 	acpuclk_set_acpu_vdd(s);
 
@@ -430,49 +394,49 @@ static void __init lpj_init(void)
 	}
 }
 
-#ifdef CONFIG_CPU_FREQ_MSM
-static struct cpufreq_frequency_table cpufreq_tbl[ARRAY_SIZE(acpu_freq_tbl)];
-
-static void setup_cpufreq_table(void)
-{
-	unsigned i = 0;
-	const struct clkctl_acpu_speed *speed;
-
-	for (speed = acpu_freq_tbl; speed->acpu_clk_khz; speed++)
-		if (speed->use_for_scaling) {
-			cpufreq_tbl[i].index = i;
-			cpufreq_tbl[i].frequency = speed->acpu_clk_khz;
-			i++;
-		}
-	cpufreq_tbl[i].frequency = CPUFREQ_TABLE_END;
-
-	cpufreq_frequency_table_get_attr(cpufreq_tbl, smp_processor_id());
-}
-#else
-static inline void setup_cpufreq_table(void) { }
-#endif
-
-/*
- * Truncate the frequency table at the current PLL2 rate and determine the
- * backup PLL to use when scaling PLL2.
- */
+/* Update frequency tables for PLL2. */
 void __init pll2_fixup(void)
 {
-	struct clkctl_acpu_speed *speed = acpu_freq_tbl;
-	u8 pll2_l = readl(PLL2_L_VAL_ADDR) & 0xFF;
+	struct clkctl_acpu_speed *speed;
+	struct cpufreq_frequency_table *cpu_freq;
+	u8 pll2_l;
 
-	for ( ; speed->acpu_clk_khz; speed++) {
-		if (speed->src != PLL_2)
-			backup_s = speed;
-		if (speed->pll_rate && speed->pll_rate->l == pll2_l) {
-			speed++;
-			speed->acpu_clk_khz = 0;
-			return;
-		}
+	pll2_l = readl(PLL2_L_VAL_ADDR) & 0xFF;
+	speed = &acpu_freq_tbl[ARRAY_SIZE(acpu_freq_tbl)-2];
+	cpu_freq = &freq_table[ARRAY_SIZE(freq_table)-2];
+
+	if (speed->acpu_clk_khz != 806400 || cpu_freq->frequency != 806400) {
+		//pr_err("Frequency table fixups for PLL2 rate failed.\n");
+		//BUG();
+		return;
 	}
 
-	pr_err("Unknown PLL2 lval %d\n", pll2_l);
-	BUG();
+	switch (pll2_l) {
+	case PLL2_1024_MHZ:
+		speed->acpu_clk_khz = 1024000;
+		speed->vdd_mv = 1150;
+		speed->vdd_raw = VDD_RAW(1150);
+		cpu_freq->frequency = 1024000;
+		break;
+	case PLL2_1200_MHZ:
+		speed->acpu_clk_khz = 1200000;
+		speed->vdd_mv = 1150;
+		speed->vdd_raw = VDD_RAW(1150);
+		cpu_freq->frequency = 1200000;
+		break;
+	case PLL2_1400_MHZ:
+		speed->acpu_clk_khz = 1400000;
+		speed->vdd_mv = 1250;
+		speed->vdd_raw = VDD_RAW(1250);
+		cpu_freq->frequency = 1400000;
+		break;
+	case PLL2_806_MHZ:
+		/* No fixup necessary */
+		break;
+	default:
+		pr_err("Unknown PLL2 lval %d\n", pll2_l);
+		BUG();
+	}
 }
 
 #define RPM_BYPASS_MASK	(1 << 3)
@@ -488,5 +452,8 @@ void __init msm_acpu_clock_init(struct msm_acpu_clock_platform_data *clkdata)
 	pll2_fixup();
 	acpuclk_init();
 	lpj_init();
-	setup_cpufreq_table();
+#ifdef CONFIG_CPU_FREQ_MSM
+	cpufreq_frequency_table_get_attr(freq_table, smp_processor_id());
+#endif
 }
+
