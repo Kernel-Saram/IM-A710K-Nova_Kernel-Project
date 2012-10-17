@@ -124,6 +124,12 @@ config CPU_FREQ_DEFAULT_GOV_SMARTASSX
 	help
 	  Use the CPUFreq governor 'smartassx' as default.
 
+config CPU_FREQ_DEFAULT_GOV_SMARTASSX
+	bool "smartass2"
+	select CPU_FREQ_GOV_SMARTASSX
+	help
+	  Use the CPUFreq governor 'smartass2' as default.
+
 config CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
 	bool "interactiveX"
 	select CPU_FREQ_GOV_INTERACTIVEX
@@ -234,6 +240,13 @@ config CPU_FREQ_GOV_SMARTASSX
 	depends on CPU_FREQ
 	help
 	  smartassx' - a "slightly more agressive smart" optimized governor!
+	  If in doubt, say Y.
+
+config CPU_FREQ_GOV_SMARTASSX
+	tristate "'smartass2' cpufreq governor"
+	depends on CPU_FREQ
+	help
+	  smartass2' - a "slightly more agressive smart" optimized governor!
 	  If in doubt, say Y.
 
 config CPU_FREQ_GOV_INTERACTIVEX
