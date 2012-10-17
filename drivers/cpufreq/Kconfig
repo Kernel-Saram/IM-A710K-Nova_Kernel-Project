@@ -111,12 +111,11 @@ config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	  governor. If unsure have a look at the help section of the
 	  driver. Fallback governor will be the performance governor.
 
-config CPU_FREQ_DEFAULT_GOV_SMARTASS2
-	bool "smartass2"
-	select CPU_FREQ_GOV_SMARTASS2
-	select CPU_FREQ_GOV_PERFORMANCE
+config CPU_FREQ_DEFAULT_GOV_SMARTASSX
+	bool "smartassx"
+	select CPU_FREQ_GOV_SMARTASSX
 	help
-	  Use the CPUFreq governor 'smartass2' as default.
+	  Use the CPUFreq governor 'smartassx' as default.
 
 config CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
 	bool "interactiveX"
@@ -126,7 +125,17 @@ config CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
 	  you to get a full dynamic cpu frequency capable system by simply
 	  loading your cpufreq low-level hardware driver, using the
 	  'interactiveX' governor for latency-sensitive workloads.
+
+config CPU_FREQ_DEFAULT_GOV_LAZY
+	bool "lazy"
+	select CPU_FREQ_GOV_LAZY
+	help
+	  Use the CPUFreq governor 'lazy' as default. This allows
+	  you to get a full dynamic cpu frequency capable system by simply
+	  loading your cpufreq low-level hardware driver.
 endchoice
+
+
 
 config CPU_FREQ_GOV_PERFORMANCE
 	tristate "'performance' governor"
@@ -206,15 +215,21 @@ config CPU_FREQ_GOV_CONSERVATIVE
 
 	  If in doubt, say N.
 
-config CPU_FREQ_GOV_SMARTASS2
-	tristate "'smartass2' cpufreq governor"
+config CPU_FREQ_GOV_SMARTASSX
+	tristate "'smartassx' cpufreq governor"
 	depends on CPU_FREQ
 	help
-	  smartass2' - a "slightly more agressive smart" optimized governor!
+	  smartassx' - a "slightly more agressive smart" optimized governor!
 	  If in doubt, say Y.
 
 config CPU_FREQ_GOV_INTERACTIVEX
 	tristate "'interactiveX' cpufreq policy governor"
 	help
 	  'interactiveX' - Modified version of interactive with sleep+wake code.
+
+config CPU_FREQ_GOV_LAZY
+	tristate "'lazy' cpufreq policy governor"
+	help
+	  'lazy' - Modified version of lazy
+
 endif	# CPU_FREQ
