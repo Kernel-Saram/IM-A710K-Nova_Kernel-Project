@@ -70,6 +70,9 @@ choice
 	config DEFAULT_NOOP
 		bool "SIO" if IOSCHED_SIO=y
 
+        config DEFAULT_BFQ
+                bool "BFQ" if IOSCHED_BFQ=y
+
 endchoice
 
 config DEFAULT_IOSCHED
@@ -78,6 +81,7 @@ config DEFAULT_IOSCHED
 	default "cfq" if DEFAULT_CFQ
 	default "noop" if DEFAULT_NOOP
 	default "sio" if DEFAULT_SIO
+        default "bfq" if DEFAULT_BFQ
 
 endmenu
 
